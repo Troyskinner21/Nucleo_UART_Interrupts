@@ -21,7 +21,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "uart_interrupt.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -91,15 +91,43 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  // Startup blink — confirms GPIO init ran before touching the pin
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_SET);
+  HAL_Delay(200);
+  HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
+
+  // Init driver — arms first RX interrupt, must come after MX_USART2_UART_Init
+  UART_IT_Init(&huart2, 115200);
+  UART_IT_TransmitString("UART Interrupt Driver Init\r\n");
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint8_t  echoBuf[64];
+  uint16_t echoLen    = 0;
+  uint32_t lastToggle = 0;
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+    // Echo a full line back when CR received (PuTTY sends '\r' on Enter)
+    if (UART_IT_ReceiveUntil(echoBuf, sizeof(echoBuf), '\r', &echoLen) == UART_IT_OK)
+    {
+      UART_IT_TransmitBuffer((uint8_t *)echoBuf, echoLen);
+      echoLen = 0;
+    }
+
+    // Non-blocking LED toggle every 500ms
+    if (HAL_GetTick() - lastToggle >= 500)
+    {
+      lastToggle = HAL_GetTick();
+      HAL_GPIO_TogglePin(LD2_GPIO_Port, LD2_Pin);
+    }
+
   }
   /* USER CODE END 3 */
 }
