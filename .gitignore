@@ -1,0 +1,10 @@
+# STM32CubeIDE build output
+Debug/
+Release/
+
+# Eclipse/CubeIDE settings (optional — keep if you want IDE config in source control)
+# .settings/
+
+# Backup files
+*.orig
+*.bak
